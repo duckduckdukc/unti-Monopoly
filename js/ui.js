@@ -98,8 +98,9 @@ class UI {
   }
 
   showGameOver(careerElapsed, reason) {
-    const { completedMonths } = this.getCareerPosition(careerElapsed);
-    this.finalTenure.textContent = this.formatCompletedMonths(completedMonths);
+    // 与顶部角标使用同一口径，显示角色当前走到的工作年月。
+    const { year, month } = this.getCareerPosition(careerElapsed);
+    this.finalTenure.textContent = `工作第 ${year} 年 · 第 ${month} 月`;
     this.reason.textContent = reason;
     this.gameOver.style.display = "flex";
   }
