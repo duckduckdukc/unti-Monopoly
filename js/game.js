@@ -1,66 +1,49 @@
 /**
- * 游戏总控制器。
- * 负责状态、计时、月份切换、难度、碰撞、暂停和存档；
- * 角色、障碍物和画面显示分别交给其他类处理。
+ * 游戏总控制器：维护连续职业时间、速度、事件、碰撞、暂停和存档。
  */
 class Game {
   constructor() {
-    // 组合页面元素和三个功能模块。
     this.gameElement = document.getElementById("game");
     this.player = new Player(document.getElementById("player"));
+    this.seniors = new SeniorManager(this.gameElement, this.player);
     this.obstacles = new ObstacleManager(this.gameElement);
     this.ui = new UI();
 
-    // 当前一局的运行状态。
     this.running = false;
     this.paused = false;
     this.hp = GameConfig.player.hp;
-    this.score = 0;
-    this.level = 1;
-    this.levelElapsed = 0;
+    this.careerElapsed = 0;
     this.speed = GameConfig.game.startSpeed;
-    this.runStartedAt = 0;
-    this.lastSpawn = 0;
+    this.lastFrameAt = 0;
+    this.nextSpawnAt = 0;
+    this.lastCheckpointIndex = 0;
 
-    // 最佳月份独立于当前存档保存，游戏失败后仍会保留。
-    this.best = Number(localStorage.getItem("work_best_month") || 0);
+    // 最佳记录按已完成月份保存，兼容旧版本的 work_best_month。
+    const savedBest = Number(localStorage.getItem("work_best_month") || 0);
+    this.best = Number.isFinite(savedBest) ? Math.max(0, savedBest) : 0;
     this.ui.updateBest(this.best);
     this.ui.updateHP(this.hp);
-    this.ui.updateLevel(this.level);
+    this.ui.updateCareer(this.careerElapsed);
+    this.ui.updateSpeed(this.speed);
     this.ui.setSaveState(this.readSave());
 
     this.bindEvents();
   }
 
   bindEvents() {
-    // “开始上班”永远创建新游戏并覆盖当前存档。
-    document.getElementById("startBtn").addEventListener("click", () => {
-      this.startNewGame();
-    });
-
-    document.getElementById("continueSaveBtn").addEventListener("click", () => {
-      this.continueSavedGame();
-    });
-
-    document.getElementById("restartBtn").addEventListener("click", () => {
-      this.startNewGame();
-    });
-
-    // 页面上的暂停、恢复和半年节点继续按钮。
+    document.getElementById("startBtn").addEventListener("click", () => this.startNewGame());
+    document.getElementById("continueSaveBtn").addEventListener("click", () => this.continueSavedGame());
+    document.getElementById("restartBtn").addEventListener("click", () => this.startNewGame());
     document.getElementById("pauseBtn").addEventListener("click", () => this.pause());
     document.getElementById("resumeBtn").addEventListener("click", () => this.resume());
-    document.getElementById("nextLevelBtn").addEventListener("click", () => this.startLevel());
 
-    // 空格、Esc 或 P 可以在“运行”和“暂停”之间切换。
     document.addEventListener("keydown", event => {
-      if ([" ", "Escape", "p", "P"].includes(event.key)) {
-        event.preventDefault();
-        if (this.running) this.pause();
-        else if (this.paused) this.resume();
-      }
+      if (![" ", "Escape", "p", "P"].includes(event.key)) return;
+      event.preventDefault();
+      if (this.running) this.pause();
+      else if (this.paused) this.resume();
     });
 
-    // 关闭或刷新页面前再保存一次，减少进度丢失。
     window.addEventListener("pagehide", () => {
       if (this.running || this.paused) this.saveProgress();
     });
@@ -68,33 +51,79 @@ class Game {
     this.player.bindControls(this);
   }
 
+  get secondsPerMonth() {
+    return GameConfig.career.secondsPerYear / GameConfig.career.monthsPerYear;
+  }
+
+  get workYears() {
+    return this.careerElapsed / GameConfig.career.secondsPerYear;
+  }
+
+  getForwardSpeed(workYears = this.workYears) {
+    return Math.min(
+      GameConfig.game.peakSpeed,
+      GameConfig.game.startSpeed + workYears * GameConfig.game.speedPerYear
+    );
+  }
+
   readSave() {
     try {
       const save = JSON.parse(localStorage.getItem("work_game_save"));
-      if (!save || !Number.isFinite(save.level) || !Number.isFinite(save.hp)) return null;
+      if (!save || !Number.isFinite(save.hp)) return null;
 
-      // 限制存档数值范围，避免旧存档或手动修改造成异常。
-      return {
-        level: Math.max(1, Math.floor(save.level)),
-        hp: Math.max(1, Math.min(100, Math.floor(save.hp))),
-        elapsed: Math.max(
-          0,
-          Math.min(GameConfig.game.levelDuration - 1, Number(save.elapsed) || 0)
-        )
-      };
+      if (save.version === 2 && Number.isFinite(save.careerElapsed)) {
+        const careerElapsed = Math.max(0, save.careerElapsed);
+        return {
+          version: 2,
+          careerElapsed,
+          hp: Math.max(1, Math.min(GameConfig.player.hp, Math.floor(save.hp))),
+          playerX: Number.isFinite(save.playerX) ? save.playerX : GameConfig.player.startX,
+          checkpointIndex: Number.isFinite(save.checkpointIndex)
+            ? Math.max(0, Math.floor(save.checkpointIndex))
+            : Math.floor(
+              careerElapsed / (
+                GameConfig.career.secondsPerYear * GameConfig.career.checkpointEveryYears
+              )
+            ),
+          seniors: Array.isArray(save.seniors) ? save.seniors : null
+        };
+      }
+
+      // 旧版存档按“30 秒一个月”记录，这里保留月数比例并迁移到新时间轴。
+      if (Number.isFinite(save.level)) {
+        const oldLevelSeconds = 30;
+        const completedMonthPart = Math.max(0, save.level - 1) +
+          Math.max(0, Number(save.elapsed) || 0) / oldLevelSeconds;
+        const careerElapsed = completedMonthPart * this.secondsPerMonth;
+        return {
+          version: 2,
+          careerElapsed,
+          hp: Math.max(1, Math.min(GameConfig.player.hp, Math.floor(save.hp))),
+          playerX: GameConfig.player.startX,
+          checkpointIndex: Math.floor(
+            careerElapsed / (
+              GameConfig.career.secondsPerYear * GameConfig.career.checkpointEveryYears
+            )
+          ),
+          seniors: null
+        };
+      }
+
+      return null;
     } catch (error) {
       return null;
     }
   }
 
   saveProgress() {
-    // 正在运行时，先把本段真实经过的时间计入本月进度。
-    if (this.running) this.captureElapsed(performance.now());
-
     const save = {
-      level: this.level,
+      version: 2,
+      careerElapsed: this.careerElapsed,
       hp: this.hp,
-      elapsed: this.levelElapsed
+      playerX: this.player.x,
+      speed: this.speed,
+      checkpointIndex: this.lastCheckpointIndex,
+      seniors: this.seniors.serialize()
     };
 
     localStorage.setItem("work_game_save", JSON.stringify(save));
@@ -106,97 +135,119 @@ class Game {
     this.ui.setSaveState(null);
   }
 
-  resetLevel() {
-    // 每个月开始时清场、把角色放回中间，并重置月内难度。
+  resetWorld(save = null) {
     this.obstacles.reset();
-    this.player.reset();
-    this.score = Math.floor(this.levelElapsed);
-    this.speed = GameConfig.game.startSpeed;
-    this.lastSpawn = 0;
-    this.ui.updateHP(this.hp);
-    this.ui.updateScore(this.score);
-    this.ui.updateLevel(this.level);
+    if (save) this.player.setX(save.playerX);
+    else this.player.reset();
+    this.seniors.reset(save?.seniors || null);
+    this.nextSpawnAt = this.careerElapsed + 0.8;
   }
 
   startNewGame() {
-    // 新游戏从第 1 年 1 月、满血开始。
+    this.running = false;
     this.clearSave();
-    this.level = 1;
     this.hp = GameConfig.player.hp;
-    this.levelElapsed = 0;
-    this.startLevel();
+    this.careerElapsed = 0;
+    this.speed = GameConfig.game.startSpeed;
+    this.lastCheckpointIndex = 0;
+    this.resetWorld();
+    this.startPlaying();
   }
 
   continueSavedGame() {
-    // 没有有效存档时安全地退回新游戏。
     const save = this.readSave();
     if (!save) {
       this.startNewGame();
       return;
     }
 
-    this.level = save.level;
+    this.running = false;
     this.hp = save.hp;
-    this.levelElapsed = save.elapsed;
-    this.startLevel();
+    this.careerElapsed = save.careerElapsed;
+    this.speed = this.getForwardSpeed();
+    this.lastCheckpointIndex = save.checkpointIndex;
+    this.resetWorld(save);
+    this.startPlaying();
   }
 
-  startLevel() {
-    // 开始或自动进入一个月，并启动逐帧更新。
+  startPlaying() {
     this.running = true;
     this.paused = false;
-    this.runStartedAt = performance.now();
-    this.resetLevel();
+    this.lastFrameAt = performance.now();
+    this.player.setRunning(true);
+    this.gameElement.classList.remove("is-paused");
+    this.ui.updateHP(this.hp);
+    this.ui.updateCareer(this.careerElapsed);
+    this.ui.updateSpeed(this.speed);
     this.ui.hideStart();
     this.ui.hideGameOver();
     this.ui.hideOverlays();
+    this.updateRoadSpeed();
     requestAnimationFrame(time => this.loop(time));
   }
 
-  captureElapsed(now) {
-    // 保存时使用分段计时，暂停期间的时间不会算入游戏。
-    this.levelElapsed += (now - this.runStartedAt) / 1000;
-    this.runStartedAt = now;
-  }
-
   pause() {
-    // 主动暂停同时触发自动存档。
     if (!this.running) return;
-    this.captureElapsed(performance.now());
     this.running = false;
     this.paused = true;
+    this.player.setRunning(false);
+    this.gameElement.classList.add("is-paused");
     this.saveProgress();
     this.ui.showPause();
   }
 
   resume() {
-    // 从暂停点继续计时，并避免把暂停时长算进生成间隔。
     if (!this.paused) return;
     this.running = true;
     this.paused = false;
-    this.runStartedAt = performance.now();
-    this.lastSpawn = this.runStartedAt;
+    this.lastFrameAt = performance.now();
+    this.player.setRunning(true);
+    this.gameElement.classList.remove("is-paused");
     this.ui.hideOverlays();
     requestAnimationFrame(time => this.loop(time));
   }
 
-  updateDifficulty() {
-    // 障碍速度只随“本月秒数”增加，下个月重新从初始速度开始。
-    this.speed = GameConfig.game.startSpeed + this.score * GameConfig.game.speedIncrease;
+  updateRoadSpeed() {
+    const duration = GameConfig.game.roadStartDuration *
+      GameConfig.game.startSpeed / this.speed;
+    this.gameElement.style.setProperty("--road-duration", `${duration.toFixed(3)}s`);
   }
 
   getSpawnGap() {
-    // 时间越久生成越快，但不会低于 minSpawnGap。
-    return Math.max(
-      GameConfig.game.minSpawnGap,
-      GameConfig.game.startSpawnGap - this.score * GameConfig.game.spawnIncrease
+    const progress = Math.min(1, this.workYears / GameConfig.career.peakYear);
+    const gapRange = GameConfig.game.startSpawnGap - GameConfig.game.minSpawnGap;
+    return (GameConfig.game.startSpawnGap - gapRange * progress) *
+      (0.82 + Math.random() * 0.36);
+  }
+
+  scheduleNextSpawn() {
+    this.nextSpawnAt = this.careerElapsed + this.getSpawnGap();
+  }
+
+  updateBest() {
+    const completedMonths = Math.floor(this.careerElapsed / this.secondsPerMonth);
+    if (completedMonths <= this.best) return;
+
+    this.best = completedMonths;
+    localStorage.setItem("work_best_month", this.best);
+    this.ui.updateBest(this.best);
+  }
+
+  handleCheckpoint() {
+    const checkpointIndex = Math.floor(
+      this.workYears / GameConfig.career.checkpointEveryYears
     );
+    if (checkpointIndex <= this.lastCheckpointIndex) return;
+
+    this.lastCheckpointIndex = checkpointIndex;
+    this.saveProgress();
+    const savedYear = checkpointIndex * GameConfig.career.checkpointEveryYears;
+    this.ui.showMessage(`💾 工作满 ${savedYear} 年，记录已保存`, 1600);
   }
 
   checkCollisions() {
     this.obstacles.objects.forEach(obstacle => {
-      // 同一个障碍只造成一次伤害。
-      if (obstacle.hit) return;
+      if (obstacle.hit || !this.running) return;
 
       if (CollisionManager.isColliding(this.player.element, obstacle.element)) {
         obstacle.hit = true;
@@ -215,67 +266,49 @@ class Game {
   loop(now) {
     if (!this.running) return;
 
-    // levelElapsed 是暂停前累计值，后半段是本次恢复后经过的时间。
-    const elapsed = this.levelElapsed + (now - this.runStartedAt) / 1000;
-    this.score = Math.min(GameConfig.game.levelDuration, Math.floor(elapsed));
-    this.ui.updateScore(this.score);
+    // 限制单帧增量，切换浏览器标签页不会让职业时间和障碍突然跳跃。
+    const deltaSeconds = Math.max(0, Math.min(0.05, (now - this.lastFrameAt) / 1000));
+    this.lastFrameAt = now;
+    this.careerElapsed += deltaSeconds;
+    this.speed = this.getForwardSpeed();
 
-    // 达到本月时长后，先处理跨月，再停止当前帧。
-    if (elapsed >= GameConfig.game.levelDuration) {
-      this.completeLevel();
-      return;
+    this.ui.updateCareer(this.careerElapsed);
+    this.ui.updateSpeed(this.speed);
+    this.updateRoadSpeed();
+
+    const overtaken = this.seniors.update(
+      this.speed,
+      this.workYears,
+      deltaSeconds,
+      this.careerElapsed
+    );
+    if (overtaken.length) {
+      this.ui.showMessage(`🏃 你超过了${overtaken.join("、")}！`, 1500);
     }
 
-    this.updateDifficulty();
-    const spawnGap = this.getSpawnGap();
-
-    if (now - this.lastSpawn > spawnGap) {
-      this.obstacles.spawn();
-      this.lastSpawn = now;
+    this.obstacles.processPending(this.careerElapsed, this.seniors, this.player.x);
+    if (this.careerElapsed >= this.nextSpawnAt) {
+      this.obstacles.spawn(this.careerElapsed, this.seniors, this.player.x);
+      this.scheduleNextSpawn();
     }
 
-    this.obstacles.update(this.speed);
+    this.obstacles.update(this.speed, deltaSeconds);
     this.checkCollisions();
 
-    if (this.running) requestAnimationFrame(time => this.loop(time));
-  }
-
-  completeLevel() {
-    // 跨月时先停止旧循环，保存“下一个月 0 秒”的状态。
-    this.running = false;
-    const completedLevel = this.level;
-    this.obstacles.reset();
-
-    if (completedLevel > this.best) {
-      this.best = completedLevel;
-      localStorage.setItem("work_best_month", this.best);
-      this.ui.updateBest(this.best);
+    if (this.running) {
+      this.updateBest();
+      this.handleCheckpoint();
+      requestAnimationFrame(time => this.loop(time));
     }
-
-    this.level++;
-    this.levelElapsed = 0;
-    this.saveProgress();
-
-    // 只有达到自动暂停间隔（默认每 6 个月）才显示休息界面。
-    if (completedLevel % GameConfig.game.pauseEveryMonths === 0) {
-      this.paused = true;
-      this.resetLevel();
-      this.ui.showCheckpoint(completedLevel);
-      return;
-    }
-
-    // 普通月份只显示短提示，然后立即开始下个月。
-    this.paused = false;
-    this.ui.showMessage(`📅 第 ${completedLevel} 个月过去了`);
-    this.startLevel();
   }
 
   end(reason) {
-    // 血量归零后清除当前进度，但不会清除最佳月份。
     this.running = false;
     this.paused = false;
+    this.player.setRunning(false);
+    this.gameElement.classList.add("is-paused");
     this.clearSave();
-    this.ui.showGameOver(this.score, reason);
+    this.ui.showGameOver(this.careerElapsed, reason);
   }
 }
 

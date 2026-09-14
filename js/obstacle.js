@@ -1,46 +1,112 @@
-/** 障碍物的创建、移动和销毁。 */
+/** 障碍事件的预备动作、创建、移动和销毁。 */
 class ObstacleManager {
   constructor(gameElement) {
     this.gameElement = gameElement;
     this.objects = [];
+    this.pendingSeniorEvents = [];
   }
 
   reset() {
-    // 跨月或重新开始时清除页面和内存中的全部障碍。
+    // 新游戏、读档或游戏结束时清除全部障碍和待触发事件。
     this.objects.forEach(object => object.element.remove());
     this.objects = [];
+    this.pendingSeniorEvents = [];
   }
 
-  spawn() {
-    // 随机选择障碍种类和三条跑道中的一条。
-    const types = GameConfig.obstacles;
-    const obstacleType = types[Math.floor(Math.random() * types.length)];
+  randomLane() {
+    return GameConfig.lanes[Math.floor(Math.random() * GameConfig.lanes.length)];
+  }
 
+  spawn(careerElapsed, seniorManager, playerX) {
+    const seniorAvailable = Boolean(seniorManager.getActiveSenior());
+    const availableTypes = GameConfig.obstacles.filter(type =>
+      type.source !== "senior" || seniorAvailable
+    );
+    const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+
+    if (type.source !== "senior") {
+      this.createObstacle(type, null, playerX);
+      return;
+    }
+
+    const senior = seniorManager.getActiveSenior();
+    if (!senior || !seniorManager.startAction(senior.id, type.action, careerElapsed)) return;
+
+    // 先播放前辈动作，动作结束后再从前辈所在位置生成雷或锅。
+    this.pendingSeniorEvents.push({
+      typeId: type.id,
+      seniorId: senior.id,
+      dueAt: careerElapsed + GameConfig.seniors.actionDuration,
+      targetX: playerX
+    });
+  }
+
+  processPending(careerElapsed, seniorManager, playerX) {
+    this.pendingSeniorEvents = this.pendingSeniorEvents.filter(event => {
+      if (careerElapsed < event.dueAt) return true;
+
+      const type = GameConfig.obstacles.find(item => item.id === event.typeId);
+      const origin = seniorManager.getSnapshot(event.seniorId);
+      if (type && origin) this.createObstacle(type, origin, playerX ?? event.targetX);
+      return false;
+    });
+  }
+
+  createObstacle(type, origin, playerX) {
     const element = document.createElement("div");
-    element.className = "obstacle " + obstacleType.className;
-    element.dataset.name = obstacleType.name;
+    element.className = `obstacle ${type.className} from-${type.source}`;
+    element.dataset.name = type.name;
+    element.setAttribute("aria-label", type.name);
 
-    const laneIndex = Math.floor(Math.random() * GameConfig.lanes.length);
-    const laneX = GameConfig.lanes[laneIndex];
+    let x = this.randomLane();
+    let y = -100;
+    let velocityX = 0;
 
-    element.style.left = laneX + "%";
-    element.style.top = "-90px";
+    if (type.source === "ground") {
+      x = 12 + Math.random() * 76;
+      y = -65;
+      velocityX = (Math.random() < 0.5 ? -1 : 1) * (7 + Math.random() * 9);
+    }
 
+    if (type.source === "senior" && origin) {
+      x = origin.x;
+      y = origin.y + 54;
+      if (type.action === "throw") {
+        velocityX = ((playerX ?? x) - x) / 1.15;
+      }
+    }
+
+    element.style.left = x + "%";
+    element.style.top = y + "px";
     this.gameElement.appendChild(element);
 
-    // y 保存纵向像素位置；hit 防止同一障碍重复扣血。
     this.objects.push({
       element,
-      x: laneX,
-      y: -90,
+      x,
+      y,
+      velocityX,
+      speedMultiplier: type.speedMultiplier,
+      source: type.source,
       hit: false
     });
   }
 
-  update(speed) {
-    // 游戏按约 60 帧/秒运行，因此把每秒速度换算为每帧位移。
+  update(forwardSpeed, deltaSeconds) {
     this.objects.forEach(object => {
-      object.y += speed / 60;
+      object.y += forwardSpeed * object.speedMultiplier * deltaSeconds;
+
+      if (object.velocityX) {
+        object.x += object.velocityX * deltaSeconds;
+
+        // 杂活在道路边缘反弹；前辈甩出的锅则继续沿原方向飞行。
+        if (object.source === "ground" && (object.x < 11 || object.x > 89)) {
+          object.x = Math.max(11, Math.min(89, object.x));
+          object.velocityX *= -1;
+        }
+
+        object.element.style.left = object.x + "%";
+      }
+
       object.element.style.top = object.y + "px";
     });
 

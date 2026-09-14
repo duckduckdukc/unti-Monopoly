@@ -7,9 +7,18 @@ class Player {
   }
 
   reset() {
-    // 每个月开始时回到道路中央。
+    // 只在新游戏开始时回到道路中央；跨月和暂停不会重置位置。
     this.x = GameConfig.player.startX;
     this.updatePosition();
+  }
+
+  setX(value) {
+    this.x = Math.max(GameConfig.player.minX, Math.min(GameConfig.player.maxX, value));
+    this.updatePosition();
+  }
+
+  setRunning(running) {
+    this.element.classList.toggle("running", running);
   }
 
   move(dx) {

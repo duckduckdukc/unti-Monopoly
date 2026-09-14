@@ -7,20 +7,18 @@ class UI {
     // 缓存常用 DOM，避免游戏循环中反复查询页面。
     this.hp = document.getElementById("hp");
     this.hpFill = document.getElementById("hpFill");
-    this.score = document.getElementById("score");
     this.level = document.getElementById("level");
+    this.speed = document.getElementById("speed");
     this.best = document.getElementById("best");
     this.start = document.getElementById("start");
     this.gameOver = document.getElementById("gameover");
-    this.finalScore = document.getElementById("finalScore");
+    this.finalTenure = document.getElementById("finalTenure");
     this.reason = document.getElementById("reason");
     this.message = document.getElementById("message");
     this.pause = document.getElementById("pause");
-    this.levelComplete = document.getElementById("levelComplete");
-    this.levelCompleteTitle = document.getElementById("levelCompleteTitle");
-    this.levelCompleteText = document.getElementById("levelCompleteText");
     this.continueSaveBtn = document.getElementById("continueSaveBtn");
     this.saveInfo = document.getElementById("saveInfo");
+    this.messageTimer = null;
   }
 
   updateHP(value) {
@@ -31,29 +29,43 @@ class UI {
     this.hpFill.classList.toggle("danger", safeValue <= 30);
   }
 
-  updateScore(value) {
-    this.score.textContent = value;
+  getCareerPosition(careerElapsed) {
+    const secondsPerMonth = GameConfig.career.secondsPerYear / GameConfig.career.monthsPerYear;
+    const completedMonths = Math.floor(Math.max(0, careerElapsed) / secondsPerMonth);
+    return {
+      completedMonths,
+      year: Math.floor(completedMonths / GameConfig.career.monthsPerYear) + 1,
+      month: completedMonths % GameConfig.career.monthsPerYear + 1
+    };
   }
 
-  updateBest(value) {
-    this.best.textContent = value;
+  formatCompletedMonths(completedMonths) {
+    const years = Math.floor(completedMonths / GameConfig.career.monthsPerYear);
+    const months = completedMonths % GameConfig.career.monthsPerYear;
+    if (!years) return `${months} 个月`;
+    return `${years} 年${months ? ` ${months} 个月` : ""}`;
   }
 
-  updateLevel(value) {
-    // level 是累计月份，从 1 开始；这里把它换算成年和月。
-    const monthsPerYear = GameConfig.game.monthsPerYear;
-    const year = Math.floor((value - 1) / monthsPerYear) + 1;
-    const month = (value - 1) % monthsPerYear + 1;
-    this.level.textContent = `第 ${year} 年 · ${month} 月`;
+  updateCareer(careerElapsed) {
+    const { year, month } = this.getCareerPosition(careerElapsed);
+    this.level.textContent = `工作第 ${year} 年 · 第 ${month} 月`;
   }
 
-  showMessage(text) {
-    // 短提示显示半秒后自动消失。
+  updateSpeed(value) {
+    this.speed.textContent = Math.round(value);
+  }
+
+  updateBest(completedMonths) {
+    this.best.textContent = this.formatCompletedMonths(completedMonths);
+  }
+
+  showMessage(text, duration = 700) {
     this.message.textContent = text;
+    clearTimeout(this.messageTimer);
 
-    setTimeout(() => {
+    this.messageTimer = setTimeout(() => {
       this.message.textContent = "";
-    }, 500);
+    }, duration);
   }
 
   hideStart() {
@@ -65,42 +77,29 @@ class UI {
   }
 
   hideOverlays() {
-    // 开始/继续月份时关闭所有暂停类遮罩。
+    // 开始或恢复时关闭暂停遮罩。
     this.pause.style.display = "none";
-    this.levelComplete.style.display = "none";
   }
 
   showPause() {
     this.pause.style.display = "flex";
   }
 
-  showCheckpoint(completedLevel) {
-    // 12 的倍数显示年度文案，否则显示半年节点文案。
-    const monthsPerYear = GameConfig.game.monthsPerYear;
-    const years = Math.floor(completedLevel / monthsPerYear);
-    const months = completedLevel % monthsPerYear;
-
-    this.levelCompleteTitle.textContent = completedLevel % monthsPerYear === 0
-      ? `又熬过了 ${years} 年！`
-      : "半年节点，喘口气";
-
-    this.levelCompleteText.textContent = years > 0
-      ? `你已经坚持了 ${years} 年${months ? ` ${months} 个月` : ""}。`
-      : `你已经坚持了 ${completedLevel} 个月。`;
-
-    this.levelComplete.style.display = "flex";
-  }
-
   setSaveState(save) {
     // 只有存在有效存档时，开始页才显示“继续存档”。
     this.continueSaveBtn.style.display = save ? "inline-block" : "none";
-    this.saveInfo.textContent = save
-      ? `存档：第 ${save.level} 关，体力 ${save.hp}`
-      : "";
+    if (!save) {
+      this.saveInfo.textContent = "";
+      return;
+    }
+
+    const { year, month } = this.getCareerPosition(save.careerElapsed);
+    this.saveInfo.textContent = `存档：工作第 ${year} 年第 ${month} 月，体力 ${save.hp}`;
   }
 
-  showGameOver(score, reason) {
-    this.finalScore.textContent = score;
+  showGameOver(careerElapsed, reason) {
+    const { completedMonths } = this.getCareerPosition(careerElapsed);
+    this.finalTenure.textContent = this.formatCompletedMonths(completedMonths);
     this.reason.textContent = reason;
     this.gameOver.style.display = "flex";
   }
