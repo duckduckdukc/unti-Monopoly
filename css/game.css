@@ -1,0 +1,60 @@
+/* ===== 全局页面设置 ===== */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+body{touch-action:none}
+
+/* ===== 游戏画布与道路背景 ===== */
+#game{position:relative;width:100%;height:100%;max-width:520px;margin:auto;overflow:hidden;background:linear-gradient(#9ed8f0 0%,#dff3f7 45%,#b9c7cc 100%)}
+#game::before{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(90deg,rgba(255,255,255,.18) 0 2%,transparent 2% 8%,rgba(255,255,255,.14) 8% 10%,transparent 10% 100%),repeating-linear-gradient(90deg,#78838a 0 55px,#69747a 55px 58px);opacity:.7}
+
+/* ===== 顶部 HUD 与血条 ===== */
+.hud{position:absolute;z-index:20;top:10px;left:12px;right:12px;display:flex;gap:6px;justify-content:space-between;align-items:center;color:#fff;text-shadow:0 2px 3px #333;font-weight:800}
+.pill{background:rgba(0,0,0,.42);border-radius:18px;padding:7px 10px;font-size:13px;white-space:nowrap}
+.hp-pill{display:flex;align-items:center;gap:6px}
+.hp-track{display:block;width:48px;height:8px;overflow:hidden;border-radius:5px;background:rgba(255,255,255,.25)}
+#hpFill{display:block;width:100%;height:100%;border-radius:5px;background:#52df73;transition:width .2s,background .2s}
+#hpFill.danger{background:#ff5353}
+.icon-button{width:34px;height:34px;padding:0;border-radius:50%;font-size:14px;box-shadow:0 3px 0 #b28b1f}
+
+/* ===== 操作提示和道路分隔线 ===== */
+#tip{position:absolute;z-index:25;top:58px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:rgba(0,0,0,.5);padding:8px 13px;border-radius:20px;font-size:13px;animation:fade 4s forwards}
+@keyframes fade{0%,65%{opacity:1}100%{opacity:0}}
+#road{position:absolute;z-index:2;left:8%;right:8%;top:0;bottom:0;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(0,0,0,.08),rgba(255,255,255,.06))}
+.lane{position:absolute;top:0;bottom:0;width:2px;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.3) 0 35px,transparent 35px 75px);animation:road 1s linear infinite}
+.lane.l1{left:33.33%}.lane.l2{left:66.66%}
+@keyframes road{to{background-position-y:75px}}
+
+/* ===== 玩家角色；left 属性由 player.js 动态修改 ===== */
+#player{position:absolute;z-index:12;bottom:6%;left:50%;width:54px;height:86px;transform:translateX(-50%);transition:left .07s linear}
+.head{position:absolute;top:0;left:15px;width:25px;height:25px;border-radius:50%;background:#f2c39b;border:2px solid #633d2c}
+.hair{position:absolute;top:-2px;left:14px;width:27px;height:13px;border-radius:14px 14px 6px 6px;background:#27272b}
+.body{position:absolute;top:25px;left:8px;width:39px;height:44px;border-radius:10px 10px 5px 5px;background:#202a36;border:2px solid #111}
+.shirt{position:absolute;top:31px;left:14px;width:27px;height:25px;background:#4d77a1;transform:skew(-3deg)}
+.arm{position:absolute;top:30px;width:9px;height:38px;border-radius:7px;background:#f2c39b;border:2px solid #633d2c}
+.arm.a{left:2px;transform:rotate(10deg)}.arm.b{right:2px;transform:rotate(-10deg)}
+.leg{position:absolute;top:66px;width:12px;height:24px;background:#202a36;border-radius:3px}
+.leg.a{left:13px;transform:rotate(4deg)}.leg.b{right:13px;transform:rotate(-4deg)}
+
+/* ===== 障碍物；类名与 js/config.js 的 obstacles 配置对应 ===== */
+.obstacle{position:absolute;z-index:10;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:900;box-shadow:0 5px 10px rgba(0,0,0,.28);user-select:none}
+.pot{width:72px;height:55px;border-radius:8px 8px 18px 18px;background:#d86b45;border:3px solid #8d3620;color:#fff}.pot::before{content:"锅";font-size:27px}
+.mine{width:58px;height:58px;border-radius:50%;background:#333;border:4px solid #161616}.mine::after{content:"💣";font-size:27px}
+.task{width:105px;min-height:48px;padding:6px;border-radius:5px;background:#fff;border:3px solid #e33d3d;color:#222;font-size:11px}.task::before{content:"📄";font-size:18px}
+.coffee{width:55px;height:62px;border-radius:6px 6px 14px 14px;background:#f3f3f3;border:3px solid #777;color:#8b4d27}.coffee::before{content:"咖啡";font-size:14px}
+.boss{width:82px;height:62px;border-radius:50% 50% 12px 12px;background:#744b8f;border:3px solid #432b55;color:#fff}.boss::before{content:"领导";font-size:22px}
+
+/* ===== 短提示、开始页、结束页和暂停遮罩 ===== */
+#message{position:absolute;z-index:30;left:50%;top:30%;transform:translate(-50%,-50%);width:88%;text-align:center;color:#fff;font-weight:900;font-size:28px;text-shadow:0 3px 4px #222;pointer-events:none}
+#start{position:absolute;z-index:50;inset:0;background:rgba(20,27,33,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:25px}
+#start h1{font-size:34px;margin:0 0 8px}#start p{font-size:15px;line-height:1.7;opacity:.9}
+button{border:0;border-radius:28px;padding:14px 32px;font-size:18px;font-weight:900;background:#ffd34d;color:#4b3510;box-shadow:0 5px 0 #b28b1f;cursor:pointer}
+.secondary-button{display:none;margin-top:10px;background:#fff;color:#4b3510;box-shadow:0 5px 0 #aaa}
+.save-info{min-height:14px;margin-top:10px}
+#gameover{display:none;position:absolute;z-index:45;inset:0;background:rgba(10,10,15,.72);align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center}
+#gameover h2{font-size:36px;margin:0 0 8px}#gameover p{margin:6px 0 20px}
+.overlay{display:none;position:absolute;z-index:46;inset:0;background:rgba(10,10,15,.78);align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;padding:24px}
+.overlay h2{font-size:34px;margin:0 0 8px}.overlay p{margin:6px 0 22px;line-height:1.6}
+.small{font-size:12px;opacity:.7;margin-top:15px}
+
+/* 小屏幕时允许 HUD 换行，避免状态栏互相挤压。 */
+@media(max-width:430px){.hud{flex-wrap:wrap;justify-content:center}.pill{font-size:12px;padding:6px 8px}.hp-track{width:36px}#tip{top:92px}}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>职场人：锅来！</title>
+  <link rel="stylesheet" href="./css/game.css">
+</head>
+<body>
+<div id="game">
+  <!-- 顶部状态栏：血量、年月、本月计时、最佳月份和暂停按钮。 -->
+  <div class="hud">
+    <div class="pill hp-pill">
+      <span>❤️ <span id="hp">100</span></span>
+      <span class="hp-track"><span id="hpFill"></span></span>
+    </div>
+    <div class="pill">📅 <span id="level">第 1 年 · 1 月</span></div>
+    <div class="pill">⏱ <span id="score">0</span>/30 秒</div>
+    <div class="pill">🏆 <span id="best">0</span> 月</div>
+    <button id="pauseBtn" class="icon-button" aria-label="暂停游戏" title="暂停游戏">Ⅱ</button>
+  </div>
+
+  <!-- 新手操作提示，显示数秒后由 CSS 动画淡出。 -->
+  <div id="tip">左右滑动躲避！别让锅甩到你！</div>
+
+  <!-- 三车道背景；两条分隔线把道路划分成三条跑道。 -->
+  <div id="road">
+    <div class="lane l1"></div>
+    <div class="lane l2"></div>
+  </div>
+
+  <!-- 玩家角色由多个简单图形拼成，位置由 player.js 控制。 -->
+  <div id="player">
+    <div class="hair"></div>
+    <div class="head"></div>
+    <div class="arm a"></div>
+    <div class="arm b"></div>
+    <div class="body"></div>
+    <div class="shirt"></div>
+    <div class="leg a"></div>
+    <div class="leg b"></div>
+  </div>
+
+  <!-- 碰撞、跨月等短暂提示会显示在这里。 -->
+  <div id="message"></div>
+
+  <!-- 开始页；存在本地存档时，ui.js 会显示“继续存档”。 -->
+  <div id="start">
+    <h1>职场人：锅来！</h1>
+    <p>
+      前方道路，危机四伏。<br>
+      前辈甩锅、埋雷、天降任务……<br>
+      但你还是得——<b>往前跑。</b>
+    </p>
+    <button id="startBtn">开始上班</button>
+    <button id="continueSaveBtn" class="secondary-button">继续存档</button>
+    <div id="saveInfo" class="small save-info"></div>
+    <div class="small">电脑：← → / A D<br>手机：左右滑动</div>
+  </div>
+
+  <!-- 血量归零后的游戏结束页。 -->
+  <div id="gameover">
+    <h2>下班失败</h2>
+    <p>你坚持了 <b><span id="finalScore">0</span></b> 秒</p>
+    <p id="reason"></p>
+    <button id="restartBtn">继续搬砖</button>
+  </div>
+
+  <!-- 玩家主动暂停时显示。 -->
+  <div id="pause" class="overlay">
+    <h2>暂时喘口气</h2>
+    <p>当前进度已经自动保存。</p>
+    <button id="resumeBtn">继续上班</button>
+  </div>
+
+  <!-- 每经过 config.js 设置的 pauseEveryMonths 个月时显示。 -->
+  <div id="levelComplete" class="overlay">
+    <h2 id="levelCompleteTitle">半年节点，喘口气</h2>
+    <p id="levelCompleteText"></p>
+    <button id="nextLevelBtn">继续上班</button>
+  </div>
+</div>
+
+<!--
+  脚本有依赖顺序：先加载配置和各功能类，最后加载 game.js 创建游戏。
+  这里使用普通脚本，因此直接双击 index.html 也可以运行。
+-->
+<script src="./js/config.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/player.js"></script>
+<script src="./js/obstacle.js"></script>
+<script src="./js/collision.js"></script>
+<script src="./js/game.js"></script>
+</body>
+</html>
