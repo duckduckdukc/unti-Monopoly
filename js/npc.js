@@ -20,6 +20,7 @@ class SeniorManager {
         id: "senior-slow",
         label: "前辈甲",
         variant: "slow",
+        sprite: slow.sprite,
         x: lanes[0],
         initialDistance: this.randomBetween(slow.initialDistance),
         verticalDistance: 0,
@@ -36,6 +37,7 @@ class SeniorManager {
         id: "senior-fast",
         label: "前辈乙",
         variant: "fast",
+        sprite: fast.sprite,
         x: lanes[1],
         initialDistance: this.randomBetween(fast.initialDistance),
         verticalDistance: 0,
@@ -72,6 +74,7 @@ class SeniorManager {
     this.seniors = states.map(state => {
       const senior = {
         ...state,
+        sprite: state.sprite || GameConfig.seniors[state.variant]?.sprite,
         distanceScale: Number.isFinite(state.distanceScale)
           ? state.distanceScale
           : GameConfig.seniors[state.variant]?.distanceScale || GameConfig.seniors.distanceScale,
@@ -96,12 +99,8 @@ class SeniorManager {
     element.innerHTML = `
       <span class="senior-name">${senior.label}</span>
       <span class="senior-action"></span>
-      <span class="senior-head"></span>
-      <span class="senior-body"></span>
-      <span class="senior-arm left"></span>
-      <span class="senior-arm right"></span>
-      <span class="senior-leg left"></span>
-      <span class="senior-leg right"></span>
+      <span class="senior-action-prop" aria-hidden="true"></span>
+      <img class="senior-sprite" src="${senior.sprite}" width="76" height="82" alt="${senior.label}鸭鸭" draggable="false">
     `;
     this.gameElement.appendChild(element);
     return element;

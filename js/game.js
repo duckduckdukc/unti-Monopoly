@@ -175,6 +175,7 @@ class Game {
     this.paused = false;
     this.lastFrameAt = performance.now();
     this.player.setRunning(true);
+    this.player.updateCareerAppearance(this.workYears);
     this.gameElement.classList.remove("is-paused");
     this.ui.updateHP(this.hp);
     this.ui.updateCareer(this.careerElapsed);
@@ -252,9 +253,14 @@ class Game {
       if (CollisionManager.isColliding(this.player.element, obstacle.element)) {
         obstacle.hit = true;
         obstacle.element.style.opacity = ".35";
+        const effect = obstacle.element.dataset.effect || "generic";
+        this.player.playHitEffect(effect);
         this.hp = Math.max(0, this.hp - GameConfig.player.collisionDamage);
         this.ui.updateHP(this.hp);
-        this.ui.showMessage("💥 " + obstacle.element.dataset.name + "！");
+        const hitMessage = effect === "pot"
+          ? "🍳 被大锅砸中了！"
+          : effect === "mine" ? "💣 被雷炸懵了！" : `💥 ${obstacle.element.dataset.name}！`;
+        this.ui.showMessage(hitMessage);
 
         if (this.hp <= 0) {
           this.end("今天的工作量，成功突破了你的心理防线。");
@@ -271,6 +277,7 @@ class Game {
     this.lastFrameAt = now;
     this.careerElapsed += deltaSeconds;
     this.speed = this.getForwardSpeed();
+    this.player.updateCareerAppearance(this.workYears);
 
     this.ui.updateCareer(this.careerElapsed);
     this.ui.updateSpeed(this.speed);

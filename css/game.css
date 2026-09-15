@@ -24,44 +24,63 @@ body{touch-action:none}
 .lane.l1{left:33.33%}.lane.l2{left:66.66%}
 @keyframes road{to{background-position-y:75px}}
 
-/* ===== 玩家角色；left 属性由 player.js 动态修改 ===== */
-#player{position:absolute;z-index:12;bottom:6%;left:50%;width:54px;height:86px;transform:translateX(-50%);transition:left .07s linear}
-.head{position:absolute;top:0;left:15px;width:25px;height:25px;border-radius:50%;background:#f2c39b;border:2px solid #633d2c}
-.hair{position:absolute;top:-2px;left:14px;width:27px;height:13px;border-radius:14px 14px 6px 6px;background:#27272b}
-.body{position:absolute;top:25px;left:8px;width:39px;height:44px;border-radius:10px 10px 5px 5px;background:#202a36;border:2px solid #111}
-.shirt{position:absolute;top:31px;left:14px;width:27px;height:25px;background:#4d77a1;transform:skew(-3deg)}
-.arm{position:absolute;top:30px;width:9px;height:38px;border-radius:7px;background:#f2c39b;border:2px solid #633d2c}
-.arm.a{left:2px;transform:rotate(10deg)}.arm.b{right:2px;transform:rotate(-10deg)}
-.leg{position:absolute;top:66px;width:12px;height:24px;background:#202a36;border-radius:3px}
-.leg.a{left:13px;transform:rotate(4deg)}.leg.b{right:13px;transform:rotate(-4deg)}
-#player.running .leg.a{animation:playerLegA .24s ease-in-out infinite alternate}
-#player.running .leg.b{animation:playerLegB .24s ease-in-out infinite alternate}
-@keyframes playerLegA{to{transform:rotate(-13deg) translateY(-2px)}}
-@keyframes playerLegB{to{transform:rotate(13deg) translateY(-2px)}}
+/* ===== 鸭鸭主角：外观图片大于碰撞盒，保持可爱体积但不扩大判定 ===== */
+#player{position:absolute;z-index:12;bottom:5%;left:50%;width:64px;height:74px;transform:translateX(-50%);transition:left .07s linear;isolation:isolate}
+.player-sprite{position:absolute;z-index:1;left:50%;bottom:-7px;width:98px;height:106px;object-fit:contain;transform:translateX(-50%);transform-origin:50% 86%;filter:drop-shadow(0 5px 4px rgba(0,0,0,.24));user-select:none;pointer-events:none}
+#player.running:not(.hit-pot):not(.hit-mine):not(.hit-generic) .player-sprite{animation:duckWaddle .38s ease-in-out infinite}
+@keyframes duckWaddle{0%,100%{transform:translateX(-50%) translateY(0) rotate(-3deg)}50%{transform:translateX(-50%) translateY(-7px) rotate(3deg) scaleY(.98)}}
 
-/* ===== 前辈 NPC：位置和垂直距离由 npc.js 持续维护 ===== */
-.senior{position:absolute;z-index:8;width:48px;height:76px;transform:translateX(-50%);transition:opacity .25s;pointer-events:none}
-.senior-name{position:absolute;z-index:3;top:-20px;left:50%;transform:translateX(-50%);padding:2px 6px;border-radius:9px;background:rgba(0,0,0,.58);color:#fff;font-size:10px;font-weight:800;white-space:nowrap}
-.senior-action{position:absolute;z-index:4;left:50%;bottom:-21px;transform:translateX(-50%);color:#ffed69;font-size:11px;font-weight:900;text-shadow:0 1px 2px #111;white-space:nowrap}
-.senior-head{position:absolute;z-index:2;top:0;left:13px;width:23px;height:23px;border:2px solid #63402e;border-radius:50%;background:#e8b98e}
-.senior-head::before{content:"";position:absolute;left:-2px;right:-2px;top:-3px;height:10px;border-radius:12px 12px 4px 4px;background:#47474d}
-.senior-body{position:absolute;z-index:1;top:22px;left:8px;width:33px;height:36px;border:2px solid #202027;border-radius:8px 8px 4px 4px;background:#77618f}
-.senior.fast .senior-body{background:#376d73}.senior.slow .senior-body{background:#77618f}
-.senior-arm{position:absolute;z-index:0;top:27px;width:8px;height:31px;border:2px solid #63402e;border-radius:6px;background:#e8b98e;transform-origin:top center}
-.senior-arm.left{left:3px;transform:rotate(9deg)}.senior-arm.right{right:3px;transform:rotate(-9deg)}
-.senior-leg{position:absolute;top:55px;width:10px;height:22px;border-radius:3px;background:#252b34;transform-origin:top center;animation:seniorRun .3s ease-in-out infinite alternate}
-.senior-leg.left{left:11px}.senior-leg.right{right:11px;animation-direction:alternate-reverse}
-.senior.action-bury{animation:seniorBury .48s ease-in-out}
-.senior.action-throw .senior-arm.right{animation:seniorThrowArm .48s ease-in-out}
+/* 锅击：鸭鸭被压扁、头顶鼓包、星芒和 DUANG 字样同步弹出。 */
+.head-bump,.impact-burst,.stun-stars,.smoke-cloud{position:absolute;z-index:5;left:50%;opacity:0;pointer-events:none}
+.head-bump{z-index:7;top:-34px;width:22px;height:15px;border:3px solid #7a2d24;border-radius:50% 50% 42% 42%;background:radial-gradient(circle at 35% 28%,#ffdf8a 0 15%,#ef795c 28%,#b84139 78%);transform:translateX(-50%) scale(0)}
+.impact-burst{top:-78px;width:126px;height:74px;transform:translateX(-50%) scale(.2);clip-path:polygon(50% 0,60% 25%,84% 8%,78% 35%,100% 42%,77% 53%,94% 78%,65% 68%,58% 100%,47% 73%,20% 94%,27% 62%,0 54%,28% 42%,11% 18%,41% 29%);background:#ffe151;filter:drop-shadow(0 3px 0 #d55d25)}
+.impact-burst span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-7deg);font-size:19px;font-weight:1000;color:#d73b25;text-shadow:1px 2px 0 #fff;white-space:nowrap}
+.stun-stars{top:-49px;width:108px;transform:translateX(-50%);text-align:center;color:#ffe34d;font-size:19px;letter-spacing:8px;text-shadow:0 2px 0 #7f4e12}
+.smoke-cloud{top:-21px;width:66px;height:42px;border-radius:50%;background:rgba(71,67,73,.82);transform:translateX(-50%) scale(.2);filter:drop-shadow(0 3px 2px rgba(0,0,0,.25))}
+.smoke-cloud::before,.smoke-cloud::after{content:"";position:absolute;border-radius:50%;background:inherit}.smoke-cloud::before{left:-16px;top:11px;width:36px;height:30px}.smoke-cloud::after{right:-14px;top:4px;width:40px;height:34px}
+#player.hit-pot .player-sprite{animation:duckPotHit 1s cubic-bezier(.22,.8,.35,1)}
+#player.hit-pot .head-bump{animation:bumpPop 1s ease-out}
+#player.hit-pot .impact-burst{animation:impactPop .5s ease-out}
+#player.hit-pot .stun-stars{animation:starsOrbit 1s ease-out}
+#player.hit-mine .player-sprite{animation:duckMineHit 1s ease-out}
+#player.hit-mine .impact-burst{background:#ff8b42;filter:drop-shadow(0 3px 0 #74202a);animation:impactPop .5s ease-out}
+#player.hit-mine .impact-burst span{color:#6d2330}
+#player.hit-mine .smoke-cloud{animation:smokeBurst 1s ease-out}
+#player.hit-mine .stun-stars{animation:starsOrbit 1s ease-out}
+#player.hit-generic .player-sprite{animation:duckGenericHit .55s ease-out}
+@keyframes duckPotHit{0%,100%{transform:translateX(-50%)}16%{transform:translateX(-50%) translateY(9px) scale(1.16,.7) rotate(-7deg)}42%{transform:translateX(-50%) translateY(-9px) scale(.94,1.08) rotate(5deg)}68%{transform:translateX(-50%) rotate(-3deg)}}
+@keyframes duckMineHit{0%,100%{transform:translateX(-50%);filter:drop-shadow(0 5px 4px rgba(0,0,0,.24))}14%{transform:translateX(-50%) scale(1.14) rotate(-11deg);filter:brightness(2)}32%,66%{transform:translateX(-50%) translateY(-7px) rotate(9deg);filter:grayscale(.7) brightness(.48) sepia(.5)}48%{transform:translateX(-50%) translateY(2px) rotate(-9deg);filter:grayscale(.7) brightness(.48) sepia(.5)}}
+@keyframes duckGenericHit{25%{transform:translateX(-50%) scale(.9,1.08) rotate(-6deg)}55%{transform:translateX(-50%) scale(1.06,.92) rotate(5deg)}}
+@keyframes bumpPop{0%,12%{opacity:0;transform:translateX(-50%) scale(0)}28%,86%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.75)}}
+@keyframes impactPop{0%{opacity:0;transform:translateX(-50%) scale(.2) rotate(-18deg)}25%,68%{opacity:1;transform:translateX(-50%) scale(1.08) rotate(4deg)}100%{opacity:0;transform:translateX(-50%) scale(1.35)}}
+@keyframes starsOrbit{0%{opacity:0;transform:translateX(-50%) translateY(8px) rotate(0)}24%,72%{opacity:1;transform:translateX(-50%) translateY(0) rotate(12deg)}100%{opacity:0;transform:translateX(-50%) translateY(-14px) rotate(-14deg)}}
+@keyframes smokeBurst{0%{opacity:0;transform:translateX(-50%) scale(.2)}25%,62%{opacity:.92;transform:translateX(-50%) translateY(-10px) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-34px) scale(1.45)}}
+@keyframes screenPotShake{20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(2px,1px)}}
+@keyframes screenMineShake{15%{transform:translate(-8px,5px)}30%{transform:translate(8px,-5px)}45%{transform:translate(-6px,-3px)}60%{transform:translate(5px,3px)}75%{transform:translate(-3px,1px)}}
+#game.impact-pot{animation:screenPotShake .3s linear}#game.impact-mine{animation:screenMineShake .48s linear}
+
+/* ===== 前辈鸭：远景显示更小，年龄由各自时间线对应的图片表达 ===== */
+.senior{position:absolute;z-index:8;width:54px;height:64px;transform:translateX(-50%);transition:opacity .25s;pointer-events:none;isolation:isolate}
+.senior-sprite{position:absolute;z-index:1;left:50%;bottom:-6px;width:76px;height:82px;object-fit:contain;transform:translateX(-50%);transform-origin:50% 86%;filter:drop-shadow(0 4px 3px rgba(0,0,0,.23));animation:seniorDuckWaddle .46s ease-in-out infinite}
+.senior.fast .senior-sprite{animation-delay:-.23s}
+.senior-name{position:absolute;z-index:4;top:-29px;left:50%;transform:translateX(-50%);padding:2px 6px;border-radius:9px;background:rgba(0,0,0,.58);color:#fff;font-size:10px;font-weight:800;white-space:nowrap}
+.senior-action{position:absolute;z-index:5;left:50%;bottom:-21px;transform:translateX(-50%);color:#ffed69;font-size:11px;font-weight:900;text-shadow:0 1px 2px #111;white-space:nowrap}
+.senior-action-prop{position:absolute;z-index:3;left:50%;top:30px;width:30px;height:30px;opacity:0;transform:translateX(-50%) scale(.4);background-position:center;background-repeat:no-repeat;background-size:contain}
+.senior.action-bury .senior-sprite{animation:seniorDuckBury .48s ease-in-out}
+.senior.action-bury .senior-action-prop{opacity:1;animation:seniorMineProp .48s ease-in-out}.senior.action-bury .senior-action-prop::before{content:"💣";font-size:25px}
+.senior.action-throw .senior-sprite{animation:seniorDuckThrow .48s ease-in-out}
+.senior.action-throw .senior-action-prop{opacity:1;background-image:url("../assets/obstacles/cartoon-pan.png");animation:seniorPotProp .48s ease-in-out}
 .senior.overtaken{opacity:.5}
-@keyframes seniorRun{to{transform:rotate(13deg) translateY(-1px)}}
-@keyframes seniorBury{50%{transform:translateX(-50%) translateY(12px) scaleY(.82)}}
-@keyframes seniorThrowArm{0%{transform:rotate(-8deg)}45%{transform:rotate(-145deg)}100%{transform:rotate(30deg)}}
+@keyframes seniorDuckWaddle{0%,100%{transform:translateX(-50%) translateY(0) rotate(-3deg)}50%{transform:translateX(-50%) translateY(-5px) rotate(3deg) scaleY(.98)}}
+@keyframes seniorDuckBury{0%,100%{transform:translateX(-50%)}52%{transform:translateX(-50%) translateY(11px) scale(1.08,.78) rotate(-6deg)}}
+@keyframes seniorDuckThrow{0%,100%{transform:translateX(-50%)}32%{transform:translateX(-50%) rotate(-15deg)}64%{transform:translateX(-50%) translateY(-5px) rotate(13deg)}}
+@keyframes seniorMineProp{0%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.2)}55%,100%{opacity:1;transform:translateX(-50%) translateY(14px) scale(1)}}
+@keyframes seniorPotProp{0%,25%{opacity:0;transform:translateX(-50%) rotate(-40deg) scale(.3)}65%{opacity:1;transform:translate(18px,-15px) rotate(24deg) scale(1)}100%{opacity:0;transform:translate(30px,-21px) rotate(80deg) scale(.75)}}
 
 /* ===== 五类障碍；来源与运动方式由 source 类名区分 ===== */
 .obstacle{position:absolute;z-index:10;display:flex;align-items:center;justify-content:center;transform:translateX(-50%);text-align:center;font-weight:900;box-shadow:0 5px 10px rgba(0,0,0,.28);user-select:none}
-.sky-pot,.senior-pot{width:72px;height:55px;border:3px solid #7c2e1c;border-radius:8px 8px 20px 20px;background:#d65f3e;color:#fff}
-.sky-pot::before{content:"天降\A大锅";white-space:pre;font-size:17px;line-height:1.05}.senior-pot::before{content:"甩锅";font-size:20px}
+.obstacle-sprite{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 5px 4px rgba(0,0,0,.3));pointer-events:none}
+.sky-pot{width:82px;height:82px;border:0;background:none;box-shadow:none}.senior-pot{width:68px;height:68px;border:0;background:none;box-shadow:none}
 .senior-mine{width:55px;height:55px;border:4px solid #161616;border-radius:50%;background:#333;animation:minePulse .55s ease-in-out infinite alternate}
 .senior-mine::after{content:"💣";font-size:26px}
 .sky-task{width:102px;min-height:49px;padding:5px;border:3px solid #e33d3d;border-radius:5px;background:#fff;color:#222;font-size:12px}
@@ -76,7 +95,7 @@ body{touch-action:none}
 @keyframes choresRoll{to{transform:translateX(-50%) rotate(360deg)}}
 
 /* 暂停时 JS 时间轴停止，CSS 动画也冻结在同一帧。 */
-#game.is-paused .lane,#game.is-paused .obstacle,#game.is-paused .senior,#game.is-paused #player *{animation-play-state:paused!important}
+#game.is-paused,#game.is-paused .lane,#game.is-paused .obstacle,#game.is-paused .senior *,#game.is-paused #player *{animation-play-state:paused!important}
 
 /* ===== 短提示、开始页、结束页和暂停遮罩 ===== */
 #message{position:absolute;z-index:30;left:50%;top:30%;transform:translate(-50%,-50%);width:88%;text-align:center;color:#fff;font-weight:900;font-size:28px;text-shadow:0 3px 4px #222;pointer-events:none}

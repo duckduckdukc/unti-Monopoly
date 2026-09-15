@@ -56,7 +56,20 @@ class ObstacleManager {
     const element = document.createElement("div");
     element.className = `obstacle ${type.className} from-${type.source}`;
     element.dataset.name = type.name;
+    element.dataset.effect = type.effect || "generic";
     element.setAttribute("aria-label", type.name);
+
+    if (type.asset) {
+      const sprite = document.createElement("img");
+      sprite.className = "obstacle-sprite";
+      sprite.src = type.asset;
+      sprite.alt = "";
+      sprite.draggable = false;
+      const spriteSize = type.id === "skyPot" ? 82 : 68;
+      sprite.width = spriteSize;
+      sprite.height = spriteSize;
+      element.appendChild(sprite);
+    }
 
     let x = this.randomLane();
     let y = -100;

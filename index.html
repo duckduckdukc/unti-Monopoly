@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>职场人：锅来！</title>
-  <link rel="stylesheet" href="./css/game.css">
+  <link rel="stylesheet" href="./css/game.css?v=20260915-duck2">
 </head>
 <body>
 <div id="game">
@@ -29,16 +29,13 @@
     <div class="lane l2"></div>
   </div>
 
-  <!-- 玩家角色由多个简单图形拼成，位置由 player.js 控制。 -->
+  <!-- 鸭鸭主角会随工龄换图；受击装饰由 player.js 切换 class 播放。 -->
   <div id="player">
-    <div class="hair"></div>
-    <div class="head"></div>
-    <div class="arm a"></div>
-    <div class="arm b"></div>
-    <div class="body"></div>
-    <div class="shirt"></div>
-    <div class="leg a"></div>
-    <div class="leg b"></div>
+    <img id="playerSprite" class="player-sprite" src="./assets/player/duck-age-22.png" width="98" height="106" alt="22 岁的职场鸭鸭" draggable="false">
+    <span class="head-bump" aria-hidden="true"></span>
+    <span class="impact-burst" aria-hidden="true"><span>DUANG!</span></span>
+    <span class="stun-stars" aria-hidden="true">★ ✦ ★</span>
+    <span class="smoke-cloud" aria-hidden="true"></span>
   </div>
 
   <!-- 碰撞、跨月等短暂提示会显示在这里。 -->
@@ -78,12 +75,12 @@
   脚本有依赖顺序：先加载配置和各功能类，最后加载 game.js 创建游戏。
   这里使用普通脚本，因此直接双击 index.html 也可以运行。
 -->
-<script src="./js/config.js"></script>
-<script src="./js/ui.js"></script>
-<script src="./js/player.js"></script>
-<script src="./js/npc.js"></script>
-<script src="./js/obstacle.js"></script>
-<script src="./js/collision.js"></script>
-<script src="./js/game.js"></script>
+<script src="./js/config.js?v=20260915-duck2"></script>
+<script src="./js/ui.js?v=20260915-duck2"></script>
+<script src="./js/player.js?v=20260915-duck2"></script>
+<script src="./js/npc.js?v=20260915-duck2"></script>
+<script src="./js/obstacle.js?v=20260915-duck2"></script>
+<script src="./js/collision.js?v=20260915-duck2"></script>
+<script src="./js/game.js?v=20260915-duck2"></script>
 </body>
 </html>
